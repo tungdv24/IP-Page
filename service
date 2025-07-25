@@ -1,0 +1,16 @@
+[Unit]
+Description=Flask App for IP Pinger
+After=network.target
+
+[Service]
+User=lamnt
+Group=lamnt
+WorkingDirectory=/home/lamnt101/IP-Page
+ExecStart=/home/lamnt101/IP-Page/venv/bin/python3 /home/lamnt101/IP-Page/app.py
+Restart=always
+RestartSec=5
+Environment="FLASK_ENV=production"
+Environment="PATH=/home/lamnt101/IP-Page/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+[Install]
+WantedBy=multi-user.target

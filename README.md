@@ -18,3 +18,17 @@ python3 database.py
 python3 app.py
 
 ```
+
+Tạo service
+
+```
+sudo nano /etc/systemd/system/all-ip-app.service
+
+sudo systemctl daemon-reload
+
+systemctl start all-ip-app.service
+
+systemctl enable all-ip-app.service
+
+systemctl status all-ip-app.service
+```
