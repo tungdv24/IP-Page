@@ -2,9 +2,10 @@ Các lệnh cần chạy
 
 
 ```
-cd IP-Page
 
 git clone https://github.com/tungdv24/IP-Page.git
+
+cd IP-Page
 
 python3 -m venv venv
 
