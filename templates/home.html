@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1/1694.png" type="image/png">
+    <title>Manage IP Ranges</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            color: #000000;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .range-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .range-list li {
+            margin-bottom: 10px;
+            padding: 12px;
+            background-color: #f1f1f1;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .range-list li a {
+            color: #1E88E5;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .range-list li a:hover {
+            text-decoration: underline;
+        }
+
+        .range-form {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .range-form input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        .range-form button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .range-form button:hover {
+            background-color: #45a049;
+        }
+
+        .range-form button:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        .range-form input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Manage IP Ranges</h1>
+
+    <div class="container">
+        <h2>Available IP Ranges</h2>
+        <ul class="range-list">
+            {% for range in ranges %}
+                <li>
+                    <a href="{{ url_for('get_ip_status', range_id=range.id) }}">{{ range.name }} ({{ range.cidr }})</a>
+                    <span>View Dashboard</span>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <div class="range-form">
+            <h2>Add New IP Range</h2>
+            <form id="addRangeForm">
+                <input type="text" id="name" placeholder="Range Name" required><br><br>
+                <input type="text" id="cidr" placeholder="CIDR (e.g., 192.168.10.0/24)" required><br><br>
+                <button type="submit">Add Range</button>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        document.getElementById("addRangeForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById("name").value;
+            const cidr = document.getElementById("cidr").value;
+
+            fetch('/add_range', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, cidr: cidr })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert("Range added successfully!");
+                      window.location.reload();
+                  }
+              });
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1/1694.png" type="image/png">
+    <title>{{ range_name }} Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+            margin-top: 20px;
+        }
+
+        .back-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #4CAF50;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .back-button:hover {
+            background-color: #45a049;
+        }
+
+        .search-bar {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 16px;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 15px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+
+        .ip-box {
+            background-color: #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            color: black;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .allocated {
+            background-color: #a8e6a1; /* Light green */
+            cursor: pointer;
+        }
+
+        .unallocated {
+            background-color: #ffb3b3; /* Light red */
+        }
+
+        .tag {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <button class="back-button" onclick="window.history.back()">Back to Dashboard</button>
+
+    <h1>{{ range_name }} Dashboard</h1>
+
+    <input type="text" class="search-bar" id="search" placeholder="Search by IP or Tag..." onkeyup="searchTags()">
+
+    <!-- Add a Refresh button -->
+    <button class="back-button" onclick="refreshStatus()">Refresh</button>
+
+    <div class="container" id="ip-container">
+        {% for ip in rows %}
+            <div class="ip-box {{ 'allocated' if ip.status == 'UP' else 'unallocated' }}" 
+                 ondblclick="editTag('{{ ip.ip }}')" data-ip="{{ ip.ip }}" data-tag="{{ ip.tag }}">
+                {{ ip.ip }}<br>
+                <span>{{ ip.status }}</span>
+                <span class="tag">{{ ip.tag }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        // Function to handle the search functionality
+        function searchTags() {
+            let filter = document.getElementById("search").value.toLowerCase();
+            
+            // If search bar is empty, show all IP boxes
+            if (filter === "") {
+                document.querySelectorAll('.ip-box').forEach(box => {
+                    box.style.display = "block"; // Show all items
+                });
+                return;
+            }
+
+            // Loop through each IP box to apply search filter
+            document.querySelectorAll('.ip-box').forEach(box => {
+                let ip = box.dataset.ip.toLowerCase();
+                let tag = box.dataset.tag.toLowerCase();
+
+                // Show the IP box if either IP or tag matches the search term, otherwise hide it
+                if (ip.includes(filter) || tag.includes(filter)) {
+                    box.style.display = "block"; // Show matching items
+                } else {
+                    box.style.display = "none"; // Hide non-matching items
+                }
+            });
+        }
+
+// Handle double-click to edit tag
+        function editTag(ip) {
+            let newTag = prompt("Enter tag for " + ip + ":", "");
+            if (newTag !== null) {
+                let data = {};
+                data[ip] = newTag;  // Format the data to match Python's expected structure
+
+                fetch('/update_tags', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert("Error: " + result.message);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        // Function to refresh IP status when the Refresh button is clicked
+        function refreshStatus() {
+            let rangeId = '{{ range_id }}';  // Get the range ID from the template
+            
+            fetch(`/refresh_ips/${rangeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById("ip-container");
+                    container.innerHTML = ''; // Clear current IP list
+
+                    // Rebuild the IP list with new status
+                    data.rows.forEach(ip => {
+                        const ipBox = document.createElement('div');
+                        ipBox.className = `ip-box ${ip.status === 'UP' ? 'allocated' : 'unallocated'}`;
+                        ipBox.dataset.ip = ip.ip;
+                        ipBox.dataset.tag = ip.tag || '';  // Add tag if needed
+
+                        ipBox.innerHTML = `${ip.ip}<br><span>${ip.status}</span><br><span class="tag">${ip.tag || ''}</span>`;
+                        ipBox.ondblclick = function() {
+                            editTag(ip.ip);
+                        };
+
+                        container.appendChild(ipBox);
+                    });
+                });
+        }
+    </script>
+
+</body>
+</html>
