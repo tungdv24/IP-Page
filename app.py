@@ -91,9 +91,16 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"Failed to send Telegram message: {e}")
 
-def check_ip(ip):
-    response = ping(ip, timeout=1)
-    return response is not None
+def check_ip(ip, retries=2):
+    for attempt in range(retries):
+        try:
+            response = ping(ip, timeout=1)
+            if response:
+                return True
+        except Exception as e:
+            print(f"[PING ERROR] {ip} - {e}")
+        time.sleep(0.5)
+    return False
 
 def monitor_ip_ranges():
     while True:
@@ -117,7 +124,7 @@ def home():
     ranges = get_ranges()
     return render_template(
         'home.html',
-        ranges=sorted(ranges, key=lambda x: ipaddress.IPv4Network(x['cidr']).network_address)
+        ranges = sorted(ranges, key=lambda x: ipaddress.IPv4Network(x['cidr'], strict=False).network_address)
     )
 
 @app.route('/dashboard/<range_id>', methods=['GET'])
@@ -156,12 +163,21 @@ def update_tags():
         cursor = conn.cursor()
 
         for ip, tag in data.items():
-            if ipaddress.ip_address(ip) in ipaddress.ip_network("192.168.10.0/24", strict=False):
-                cursor.execute("UPDATE ip_status SET tag = ? WHERE ip = ?", (tag, ip))
+            cursor.execute("UPDATE ip_status SET tag = ? WHERE ip = ?", (tag, ip))
+            # Recheck the status and update after tagging
+            allocated = check_ip(ip)
+            status = "UP" if allocated else "DOWN"
+            # Get range_id to update status correctly
+            cursor.execute("SELECT range_id FROM ip_status WHERE ip = ?", (ip,))
+            row = cursor.fetchone()
+            if row:
+                range_id = row[0]
+                update_ip_status(ip, status, range_id)
 
         conn.commit()
         conn.close()
-        return jsonify({"success": True, "message": "Tags updated successfully."})
+        return jsonify({"success": True, "message": "Tags updated and IPs rechecked."})
+
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
